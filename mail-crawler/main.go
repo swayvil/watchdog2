@@ -5,10 +5,10 @@ import (
 )
 
 func main() {
-	//dao.InsertSnapshot("garage", time.Now(), make([]byte, 5), make([]byte, 5))
-	imapCLient := NewImapClient()
-	imapCLient.GetMessages()
-	imapCLient.Logout()
+	//imapCLient := NewImapClient()
+	//imapCLient.ImportMessages()
+	//imapCLient.Logout()
+	HandleRequests()
 	GetPostgresqlClient().CloseConnection()
 	fmt.Println("Done")
 }

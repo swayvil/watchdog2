@@ -70,7 +70,7 @@ func (imapClient *ImapClient) getSinceDateTime() time.Time {
 	return *latest
 }
 
-func (imapClient *ImapClient) GetMessages() {
+func (imapClient *ImapClient) ImportMessages() {
 	criteria := imap.NewSearchCriteria()
 	criteria.Since = imapClient.getSinceDateTime()
 	uids, err := imapClient.c.Search(criteria)
@@ -134,6 +134,11 @@ func (imapClient *ImapClient) parseMail(msg *imap.Message, section *imap.BodySec
 
 	if mr := mailReader.MultipartReader(); mr != nil {
 		// This is a multipart message
+		var camera string
+		var timestamp time.Time
+		var photo []byte
+		var photoSmall []byte
+
 		for {
 			p, err := mr.NextPart()
 			if err == io.EOF {
@@ -143,8 +148,6 @@ func (imapClient *ImapClient) parseMail(msg *imap.Message, section *imap.BodySec
 			}
 
 			kind, _, _ := p.Header.ContentType()
-			var camera string
-			var timestamp time.Time
 
 			if kind == "text/html" {
 				read, err := ioutil.ReadAll(p.Body)
@@ -154,13 +157,14 @@ func (imapClient *ImapClient) parseMail(msg *imap.Message, section *imap.BodySec
 				camera, timestamp = imapClient.parseBody(string(read))
 			}
 			if kind == "image/jpeg" {
-				read, err := ioutil.ReadAll(p.Body)
+				photo, err = ioutil.ReadAll(p.Body)
 				if err != nil {
 					log.Fatal(err)
 				}
-				InsertSnapshot(camera, timestamp, resizeImage(read), read)
+				photoSmall = resizeImage(photo)
 			}
 		}
+		InsertSnapshot(camera, timestamp, photoSmall, photo)
 	}
 
 	// Process each message's part

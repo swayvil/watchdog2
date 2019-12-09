@@ -32,6 +32,12 @@ type Config struct {
 		SubjectPattern string `json:"subjectPattern"`
 		BodyPattern    string `json:"bodyPattern"`
 	} `json:"mail"`
+	Fs struct {
+		PhotosStorePath string `json:"photosStorePath"`
+	} `json:"fs"`
+	WebServer struct {
+		PhotosRoot string `json:"photosRoot"`
+	} `json:"web-server"`
 }
 
 var instanceConfig *Config

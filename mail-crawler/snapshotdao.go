@@ -1,25 +1,46 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 	"time"
-	t "time"
 )
 
 const (
-	insertSnapshotQuery       string = `INSERT INTO snapshot (camera, timestamp, photosmall, photo) VALUES ($1, $2, $3, $4);`
+	LIMIT_SELECT              int    = 30
+	insertSnapshotQuery       string = `INSERT INTO snapshot (camera, timestamp) VALUES ($1, $2);`
 	selectLatestDate          string = `SELECT MAX(timestamp) FROM snapshot;`
 	selectDatesQuery          string = `SELECT DISTINCT timestamp FROM snapshot;`
-	selectSnapshotAllCamQuery string = `SELECT camera, timestamp, photosmall, photo FROM snapshot, photosmall WHERE snapshot.id = photosmall.id AND timestamp >= $1;`
-	selectSnapshotOneCamQuery string = `SELECT camera, timestamp, photosmall, photo FROM snapshot, photosmall WHERE snapshot.id = photosmall.id AND timestamp >= $1 AND camera = $2;`
+	selectSnapshotAllCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 LIMIT $2 OFFSET $3;`
+	selectSnapshotOneCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 AND camera = $2 LIMIT $3 OFFSET $4;`
 )
 
-func InsertSnapshot(camera string, timestamp t.Time, photosmall []byte, photo []byte) {
+type Snapshot struct {
+	Camera         string `json:"camera"`
+	Timestamp      string `json:"timestamp"`
+	PhotosmallPath string `json:"photosmallPath"`
+	PhotoPath      string `json:"photoPath"`
+}
+
+func InsertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo []byte) {
+	if camera == "" {
+		log.Fatal("InsertSnapshot: camera is null")
+	}
+	if photosmall == nil {
+		log.Fatal("InsertSnapshot: photosmall is null")
+	}
+	if photo == nil {
+		log.Fatal("InsertSnapshot: photo is null")
+	}
 	psClient := GetPostgresqlClient()
-	idPhotoSmall := InsertPhotoSmall(photosmall)
-	idPhoto := InsertPhoto(photo)
-	_, err := psClient.Db.Exec(insertSnapshotQuery, camera, timestamp, idPhotoSmall, idPhoto)
+	fileName := timestamp.Format("20060102150405") + ".jpg"
+	WriteImageToFs(photosmall, camera+string(os.PathSeparator)+"small"+string(os.PathSeparator)+fileName)
+	WriteImageToFs(photo, camera+string(os.PathSeparator)+"big"+string(os.PathSeparator)+fileName)
+	//photoSmallID := InsertPhotoSmall(photosmall)
+	//photoID := InsertPhoto(photo)
+	_, err := psClient.Db.Exec(insertSnapshotQuery, camera, timestamp)
 	if err != nil {
 		panic(err)
 	}
@@ -31,13 +52,43 @@ func GetLatestTimestampInserted() *time.Time {
 	psClient := GetPostgresqlClient()
 
 	row := psClient.Db.QueryRow(selectLatestDate)
-	switch err := row.Scan(&timestamp); err {
-	case sql.ErrNoRows:
-		fmt.Println("No rows were returned!")
-	case nil:
-		return &timestamp
-	default:
+	err := row.Scan(&timestamp)
+	if err != nil {
+		return nil
+	}
+	return &timestamp
+}
+
+func GetSnapshotAllCam(fromTimestamp time.Time, offset int) []Snapshot {
+	psClient := GetPostgresqlClient()
+
+	rows, err := psClient.Db.Query(selectSnapshotAllCamQuery, fromTimestamp, LIMIT_SELECT, offset)
+	if err != nil {
 		panic(err)
 	}
-	return nil
+	var snapshots []Snapshot
+	snapshots = make([]Snapshot, LIMIT_SELECT)
+	i := 0
+	for rows.Next() {
+		var camera string
+		var timestamp time.Time
+		err = rows.Scan(&camera, &timestamp)
+		if err != nil {
+			panic(err)
+		}
+		camera = strings.TrimSpace(camera)
+		photosRoot := GetConfigInstance().WebServer.PhotosRoot
+		fileName := timestamp.Format("20060102150405") + ".jpg"
+		photosmallPath := photosRoot + "/" + camera + "/small/" + fileName
+		photoPath := photosRoot + "/" + camera + "/big/" + fileName
+		snapshot := Snapshot{camera, timestamp.Format("2006-01-02T15:04:05"), photosmallPath, photoPath}
+		snapshots[i] = snapshot
+		i++
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return snapshots
 }
