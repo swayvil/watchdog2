@@ -1,14 +1,14 @@
 {
   "imap": {
-    "url": "imap.gmail.com:993",
-    "user": "indra.oudjat@gmail.com",
-    "password": "OPsjhkbd86*%"
+    "url": "XXX",
+    "user": "XXX",
+    "password": "XXX"
   },
   "db": {
     "host": "localhost",
     "port": 5432,
-    "user": "watchdog",
-    "password": "watchdog",
+    "user": "XXX",
+    "password": "XXX",
     "name": "watchdog2"
   },
   "mail": {
@@ -22,7 +22,7 @@
     "bodyPattern": "CAMERA: ([a-zA-Z]+)<br>DATE: ([0-9]{4})/([0-9]{2})/([0-9]{2})<br>TIME: ([0-9]{2}):([0-9]{2}):([0-9]{2})<br>.*"
   },
   "fs": {
-    "photosStorePath": "/Users/idaho/workspaces/watchdog2-store"
+    "photosStorePath": "/Users/XXX/workspaces/watchdog2-store"
   },
   "web-server": {
     "photosRoot": "/photos"
