@@ -13,6 +13,7 @@ const (
 	insertSnapshotQuery       string = `INSERT INTO snapshot (camera, timestamp) VALUES ($1, $2);`
 	selectLatestDate          string = `SELECT MAX(timestamp) FROM snapshot;`
 	selectDatesQuery          string = `SELECT DISTINCT timestamp FROM snapshot;`
+	countSnapshotAllCamQuery  string = `SELECT count(*) FROM snapshot WHERE timestamp >= $1;`
 	selectSnapshotAllCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 LIMIT $2 OFFSET $3;`
 	selectSnapshotOneCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 AND camera = $2 LIMIT $3 OFFSET $4;`
 )
@@ -59,10 +60,22 @@ func GetLatestTimestampInserted() *time.Time {
 	return &timestamp
 }
 
-func GetSnapshotAllCam(fromTimestamp time.Time, offset int) []Snapshot {
+func GetCountSnapshotAllCam(fromTimestamp time.Time) int {
+	var count int
 	psClient := GetPostgresqlClient()
 
-	rows, err := psClient.Db.Query(selectSnapshotAllCamQuery, fromTimestamp, LIMIT_SELECT, offset)
+	row := psClient.Db.QueryRow(countSnapshotAllCamQuery, fromTimestamp)
+	err := row.Scan(&count)
+	if err != nil {
+		return 0
+	}
+	return count
+}
+
+func GetSnapshotAllCam(fromTimestamp time.Time, cursor int) []Snapshot {
+	psClient := GetPostgresqlClient()
+
+	rows, err := psClient.Db.Query(selectSnapshotAllCamQuery, fromTimestamp, LIMIT_SELECT, cursor*LIMIT_SELECT)
 	if err != nil {
 		panic(err)
 	}
@@ -90,5 +103,9 @@ func GetSnapshotAllCam(fromTimestamp time.Time, offset int) []Snapshot {
 	if err != nil {
 		panic(err)
 	}
-	return snapshots
+	if i < LIMIT_SELECT {
+		return snapshots[0:i]
+	} else {
+		return snapshots
+	}
 }
