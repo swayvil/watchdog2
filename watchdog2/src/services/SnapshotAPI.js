@@ -2,20 +2,26 @@ import axios from 'axios'
 
 export default {
 
-  fetchSnapshotAllCam (fromTimestamp, cursor) {
-    return axios.get('/snapshots-all-cams/' + fromTimestamp + '/' + cursor)
+  getSnapshots (fromTimestamp, cameras, cursor) {
+    return axios.get('/snapshots/' + fromTimestamp + '/' + cameras + '/' + cursor)
     .then(response => {
       return response.data;
     })
   },
-  countSnapshotAllCam (fromTimestamp) {
-    return axios.get('/count-snapshots-all-cams/' + fromTimestamp)
+  countSnapshots (fromTimestamp, cameras) {
+    return axios.get('/count-snapshots/' + fromTimestamp + '/' + cameras)
     .then(response => {
       return response.data;
     })
   },
-  getSnapshotLimit () {
+  getSnapshotsLimit () {
     return axios.get('/snapshots-limit')
+    .then(response => {
+      return response.data;
+    })
+  },
+  getCameras () {
+    return axios.get('/cameras')
     .then(response => {
       return response.data;
     })

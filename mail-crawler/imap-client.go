@@ -9,14 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	//	"fmt"
-	//	"sync"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message"
 )
 
-type ImapClient struct {
+type imapClient struct {
 	c        *client.Client
 	location *time.Location
 }
@@ -26,9 +24,9 @@ const timeLayout = "2006-01-02 15:04:05"
 //var instance *ImapClient
 //var once sync.Once
 
-func NewImapClient() *ImapClient {
+func newImapClient() *imapClient {
 	// Connect to server
-	c, err := client.DialTLS(GetConfigInstance().Imap.Url, nil)
+	c, err := client.DialTLS(getConfigInstance().Imap.URL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +36,7 @@ func NewImapClient() *ImapClient {
 	//defer c.Logout()
 
 	// Login
-	if err := c.Login(GetConfigInstance().Imap.User, GetConfigInstance().Imap.Password); err != nil {
+	if err := c.Login(getConfigInstance().Imap.User, getConfigInstance().Imap.Password); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Logged in")
@@ -54,23 +52,23 @@ func NewImapClient() *ImapClient {
 		log.Fatal("No message in mailbox")
 	}
 
-	location, err := time.LoadLocation(GetConfigInstance().Mail.Since.TimeZone)
+	location, err := time.LoadLocation(getConfigInstance().Mail.Since.TimeZone)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return &ImapClient{c, location}
+	return &imapClient{c, location}
 }
 
-func (imapClient *ImapClient) getSinceDateTime() time.Time {
-	latest := GetLatestTimestampInserted()
+func (imapClient *imapClient) getSinceDateTime() time.Time {
+	latest := selectLatestTimestampInserted()
 	if latest == nil {
 		fmt.Println("Search mails since default date")
-		return time.Date(GetConfigInstance().Mail.Since.Year, time.Month(GetConfigInstance().Mail.Since.Month), GetConfigInstance().Mail.Since.Day, 0, 0, 0, 0, imapClient.location)
+		return time.Date(getConfigInstance().Mail.Since.Year, time.Month(getConfigInstance().Mail.Since.Month), getConfigInstance().Mail.Since.Day, 0, 0, 0, 0, imapClient.location)
 	}
 	return *latest
 }
 
-func (imapClient *ImapClient) ImportMessages() {
+func (imapClient *imapClient) importMessages() {
 	criteria := imap.NewSearchCriteria()
 	criteria.Since = imapClient.getSinceDateTime()
 	uids, err := imapClient.c.Search(criteria)
@@ -91,7 +89,7 @@ func (imapClient *ImapClient) ImportMessages() {
 	}()
 
 	for msg := range messages {
-		matched, err := regexp.MatchString(GetConfigInstance().Mail.SubjectPattern, msg.Envelope.Subject)
+		matched, err := regexp.MatchString(getConfigInstance().Mail.SubjectPattern, msg.Envelope.Subject)
 		if err != nil {
 			log.Println(err)
 		}
@@ -105,7 +103,7 @@ func (imapClient *ImapClient) ImportMessages() {
 	}
 }
 
-func (imapClient *ImapClient) parseMail(msg *imap.Message, section *imap.BodySectionName) {
+func (imapClient *imapClient) parseMail(msg *imap.Message, section *imap.BodySectionName) {
 	r := msg.GetBody(section)
 	if r == nil {
 		log.Fatal("Server didn't returned message body")
@@ -164,7 +162,7 @@ func (imapClient *ImapClient) parseMail(msg *imap.Message, section *imap.BodySec
 				photoSmall = resizeImage(photo)
 			}
 		}
-		InsertSnapshot(camera, timestamp, photoSmall, photo)
+		insertSnapshot(camera, timestamp, photoSmall, photo)
 	}
 
 	// Process each message's part
@@ -199,13 +197,13 @@ func strToInt(str string) int {
 	return i
 }
 
-func (imapClient *ImapClient) parseBody(body string) (string, time.Time) {
-	r := regexp.MustCompile(GetConfigInstance().Mail.BodyPattern)
+func (imapClient *imapClient) parseBody(body string) (string, time.Time) {
+	r := regexp.MustCompile(getConfigInstance().Mail.BodyPattern)
 	match := r.FindAllStringSubmatch(body, -1)
 	t := time.Date(strToInt(match[0][2]), time.Month(strToInt(match[0][3])), strToInt(match[0][4]), strToInt(match[0][5]), strToInt(match[0][6]), strToInt(match[0][7]), 0, imapClient.location)
 	return string(match[0][1]), t
 }
 
-func (imapClient *ImapClient) Logout() {
+func (imapClient *imapClient) logout() {
 	imapClient.c.Logout()
 }

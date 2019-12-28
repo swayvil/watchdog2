@@ -1,14 +1,12 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func main() {
-	//imapCLient := NewImapClient()
-	//imapCLient.ImportMessages()
-	//imapCLient.Logout()
-	HandleRequests()
-	GetPostgresqlClient().CloseConnection()
+	//imapCLient := newImapClient()
+	//imapCLient.importMessages()
+	//imapCLient.logout()
+	handleRequests()
+	getPostgresqlClient().closeConnection()
 	fmt.Println("Done")
 }

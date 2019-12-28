@@ -9,26 +9,26 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PostgresqlClient struct { //Singleton
+type postgresqlClient struct { //Singleton
 	Db *sql.DB
 }
 
-var instanceDbClient *PostgresqlClient
+var instanceDbClient *postgresqlClient
 var onceDbClient sync.Once
 
-func GetPostgresqlClient() *PostgresqlClient {
+func getPostgresqlClient() *postgresqlClient {
 	onceDbClient.Do(func() {
 		connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-			GetConfigInstance().Db.Host, GetConfigInstance().Db.Port, GetConfigInstance().Db.User, GetConfigInstance().Db.Password, GetConfigInstance().Db.Name)
+			getConfigInstance().Db.Host, getConfigInstance().Db.Port, getConfigInstance().Db.User, getConfigInstance().Db.Password, getConfigInstance().Db.Name)
 		db, err := sql.Open("postgres", connStr)
 		if err != nil {
 			log.Fatal(err)
 		}
-		instanceDbClient = &PostgresqlClient{db}
+		instanceDbClient = &postgresqlClient{db}
 	})
 	return instanceDbClient
 }
 
-func (psClient *PostgresqlClient) CloseConnection() {
+func (psClient *postgresqlClient) closeConnection() {
 	psClient.Db.Close()
 }

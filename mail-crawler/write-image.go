@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-func WriteImageToFs(image []byte, filename string) {
-	f, err := os.Create(GetConfigInstance().Fs.PhotosStorePath + string(os.PathSeparator) + filename)
+func writeImageToFs(image []byte, filename string) {
+	f, err := os.Create(getConfigInstance().Fs.PhotosStorePath + string(os.PathSeparator) + filename)
 	if err != nil {
 		fmt.Println(err)
 		return

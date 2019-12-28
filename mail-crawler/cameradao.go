@@ -1,15 +1,12 @@
 package main
 
-import (
-	"fmt"
-)
-
 const selectCamerasQuery string = `SELECT camera FROM camera;`
 
-func SelectCameras() {
-	psClient := GetPostgresqlClient()
+func selectCameras() []string {
+	psClient := getPostgresqlClient()
 	rows, err := psClient.Db.Query(selectCamerasQuery)
 	defer rows.Close()
+	var cameras []string
 	for rows.Next() {
 		var camera string
 		err = rows.Scan(&camera)
@@ -17,11 +14,12 @@ func SelectCameras() {
 			// handle this error
 			panic(err)
 		}
-		fmt.Println(camera)
+		cameras = append(cameras, camera)
 	}
 	// get any error encountered during iteration
 	err = rows.Err()
 	if err != nil {
 		panic(err)
 	}
+	return cameras
 }

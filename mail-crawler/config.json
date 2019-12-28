@@ -1,6 +1,6 @@
 {
   "imap": {
-    "url": "XXX",
+    "url": "imap.gmail.com:993",
     "user": "XXX",
     "password": "XXX"
   },
@@ -9,7 +9,8 @@
     "port": 5432,
     "user": "XXX",
     "password": "XXX",
-    "name": "watchdog2"
+    "name": "XXX",
+    "limitSelect": 50
   },
   "mail": {
     "since": {

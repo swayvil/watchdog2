@@ -27,9 +27,9 @@ CREATE TABLE camera (
     camera CHAR(10) PRIMARY KEY         NOT NULL
 );
 
-INSERT INTO camera (camera) VALUES ('cour');
-INSERT INTO camera (camera) VALUES ('garage');
-INSERT INTO camera (camera) VALUES ('entree');
+INSERT INTO camera (camera) VALUES ('Cour');
+INSERT INTO camera (camera) VALUES ('Garage');
+INSERT INTO camera (camera) VALUES ('Entree');
 
 mkdir -p /Users/idaho/workspaces/watchdog2-store/cour/small
 mkdir -p /Users/idaho/workspaces/watchdog2-store/cour/big

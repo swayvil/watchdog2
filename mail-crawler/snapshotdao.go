@@ -9,23 +9,21 @@ import (
 )
 
 const (
-	LIMIT_SELECT              int    = 30
-	insertSnapshotQuery       string = `INSERT INTO snapshot (camera, timestamp) VALUES ($1, $2);`
-	selectLatestDate          string = `SELECT MAX(timestamp) FROM snapshot;`
-	selectDatesQuery          string = `SELECT DISTINCT timestamp FROM snapshot;`
-	countSnapshotAllCamQuery  string = `SELECT count(*) FROM snapshot WHERE timestamp >= $1;`
-	selectSnapshotAllCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 LIMIT $2 OFFSET $3;`
-	selectSnapshotOneCamQuery string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 AND camera = $2 LIMIT $3 OFFSET $4;`
+	insertSnapshotQuery   string = `INSERT INTO snapshot (camera, timestamp) VALUES ('$1', '$2');`
+	selectLatestDateQuery string = `SELECT MAX(timestamp) FROM snapshot;`
+	selectDatesQuery      string = `SELECT DISTINCT timestamp FROM snapshot;`
+	countSnapshotsQuery   string = `SELECT count(*) FROM snapshot WHERE timestamp >= $1 AND camera = ANY($2::text[]);`
+	selectSnapshotsQuery  string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 AND camera = ANY($2::text[]) LIMIT $3 OFFSET $4;`
 )
 
-type Snapshot struct {
+type snapshot struct {
 	Camera         string `json:"camera"`
 	Timestamp      string `json:"timestamp"`
 	PhotosmallPath string `json:"photosmallPath"`
 	PhotoPath      string `json:"photoPath"`
 }
 
-func InsertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo []byte) {
+func insertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo []byte) {
 	if camera == "" {
 		log.Fatal("InsertSnapshot: camera is null")
 	}
@@ -35,10 +33,10 @@ func InsertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo
 	if photo == nil {
 		log.Fatal("InsertSnapshot: photo is null")
 	}
-	psClient := GetPostgresqlClient()
+	psClient := getPostgresqlClient()
 	fileName := timestamp.Format("20060102150405") + ".jpg"
-	WriteImageToFs(photosmall, camera+string(os.PathSeparator)+"small"+string(os.PathSeparator)+fileName)
-	WriteImageToFs(photo, camera+string(os.PathSeparator)+"big"+string(os.PathSeparator)+fileName)
+	writeImageToFs(photosmall, camera+string(os.PathSeparator)+"small"+string(os.PathSeparator)+fileName)
+	writeImageToFs(photo, camera+string(os.PathSeparator)+"big"+string(os.PathSeparator)+fileName)
 	//photoSmallID := InsertPhotoSmall(photosmall)
 	//photoID := InsertPhoto(photo)
 	_, err := psClient.Db.Exec(insertSnapshotQuery, camera, timestamp)
@@ -48,11 +46,11 @@ func InsertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo
 	fmt.Println("Snapshot inserted")
 }
 
-func GetLatestTimestampInserted() *time.Time {
+func selectLatestTimestampInserted() *time.Time {
 	var timestamp time.Time
-	psClient := GetPostgresqlClient()
+	psClient := getPostgresqlClient()
 
-	row := psClient.Db.QueryRow(selectLatestDate)
+	row := psClient.Db.QueryRow(selectLatestDateQuery)
 	err := row.Scan(&timestamp)
 	if err != nil {
 		return nil
@@ -60,11 +58,11 @@ func GetLatestTimestampInserted() *time.Time {
 	return &timestamp
 }
 
-func GetCountSnapshotAllCam(fromTimestamp time.Time) int {
+func selectCountSnapshots(fromTimestamp time.Time, cameras string) int {
 	var count int
-	psClient := GetPostgresqlClient()
+	psClient := getPostgresqlClient()
 
-	row := psClient.Db.QueryRow(countSnapshotAllCamQuery, fromTimestamp)
+	row := psClient.Db.QueryRow(countSnapshotsQuery, fromTimestamp, "{"+cameras+"}")
 	err := row.Scan(&count)
 	if err != nil {
 		return 0
@@ -72,15 +70,17 @@ func GetCountSnapshotAllCam(fromTimestamp time.Time) int {
 	return count
 }
 
-func GetSnapshotAllCam(fromTimestamp time.Time, cursor int) []Snapshot {
-	psClient := GetPostgresqlClient()
+func selectSnapshots(fromTimestamp time.Time, cameras string, cursor int) []snapshot {
+	limitSelect := getConfigInstance().Db.LimitSelect
+	psClient := getPostgresqlClient()
 
-	rows, err := psClient.Db.Query(selectSnapshotAllCamQuery, fromTimestamp, LIMIT_SELECT, cursor*LIMIT_SELECT)
+	rows, err := psClient.Db.Query(selectSnapshotsQuery, fromTimestamp, "{"+cameras+"}", limitSelect, cursor*limitSelect)
+	defer rows.Close()
 	if err != nil {
 		panic(err)
 	}
-	var snapshots []Snapshot
-	snapshots = make([]Snapshot, LIMIT_SELECT)
+	var snapshots []snapshot
+	snapshots = make([]snapshot, limitSelect)
 	i := 0
 	for rows.Next() {
 		var camera string
@@ -90,11 +90,11 @@ func GetSnapshotAllCam(fromTimestamp time.Time, cursor int) []Snapshot {
 			panic(err)
 		}
 		camera = strings.TrimSpace(camera)
-		photosRoot := GetConfigInstance().WebServer.PhotosRoot
+		photosRoot := getConfigInstance().WebServer.PhotosRoot
 		fileName := timestamp.Format("20060102150405") + ".jpg"
 		photosmallPath := photosRoot + "/" + camera + "/small/" + fileName
 		photoPath := photosRoot + "/" + camera + "/big/" + fileName
-		snapshot := Snapshot{camera, timestamp.Format("2006-01-02T15:04:05"), photosmallPath, photoPath}
+		snapshot := snapshot{camera, timestamp.Format("2006-01-02T15:04:05"), photosmallPath, photoPath}
 		snapshots[i] = snapshot
 		i++
 	}
@@ -103,9 +103,8 @@ func GetSnapshotAllCam(fromTimestamp time.Time, cursor int) []Snapshot {
 	if err != nil {
 		panic(err)
 	}
-	if i < LIMIT_SELECT {
+	if i < limitSelect {
 		return snapshots[0:i]
-	} else {
-		return snapshots
 	}
+	return snapshots
 }

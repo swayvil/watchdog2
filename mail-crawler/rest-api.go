@@ -16,45 +16,57 @@ const (
 	tsLayout string = "2006-01-02T15:04:05"
 )
 
-func restSnapshotAllCam(w http.ResponseWriter, r *http.Request) {
+func getSnapshotsAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ts := vars["ts"] // timestamp
+	ts := vars["time"] + "T00:00:00" // timestamp
 	fromTimestamp, err := time.Parse(tsLayout, ts)
-	cursor, err := strconv.Atoi(vars["cursor"])
-
 	if err != nil {
 		panic(err)
 	}
-	snapshots := GetSnapshotAllCam(fromTimestamp, cursor)
+
+	cursor, err := strconv.Atoi(vars["cursor"])
+	if err != nil {
+		panic(err)
+	}
+	cameras := vars["cams"]
+
+	snapshots := selectSnapshots(fromTimestamp, cameras, cursor)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(snapshots)
 }
 
-func restCountSnapshotAllCam(w http.ResponseWriter, r *http.Request) {
+func countSnapshotsAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ts := vars["ts"] // timestamp
+	ts := vars["time"] + "T00:00:00" // timestamp
 	fromTimestamp, err := time.Parse(tsLayout, ts)
-
 	if err != nil {
 		panic(err)
 	}
-	count := GetCountSnapshotAllCam(fromTimestamp)
+
+	cameras := vars["cams"]
+	count := selectCountSnapshots(fromTimestamp, cameras)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(count)
 }
 
-func restSnapshoLimit(w http.ResponseWriter, r *http.Request) {
+func getSnapshotsLimitAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LIMIT_SELECT)
+	json.NewEncoder(w).Encode(getConfigInstance().Db.LimitSelect)
 }
 
-func HandleRequests() {
+func getCamerasAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(selectCameras())
+}
+
+func handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
-	photosRoot := GetConfigInstance().WebServer.PhotosRoot
-	myRouter.PathPrefix(photosRoot).Handler(http.StripPrefix(photosRoot, http.FileServer(http.Dir(GetConfigInstance().Fs.PhotosStorePath))))
-	myRouter.HandleFunc("/snapshots-all-cams/{ts}/{cursor}", restSnapshotAllCam).Methods("GET")
-	myRouter.HandleFunc("/count-snapshots-all-cams/{ts}", restCountSnapshotAllCam).Methods("GET")
-	myRouter.HandleFunc("/snapshots-limit", restSnapshoLimit).Methods("GET")
+	photosRoot := getConfigInstance().WebServer.PhotosRoot
+	myRouter.PathPrefix(photosRoot).Handler(http.StripPrefix(photosRoot, http.FileServer(http.Dir(getConfigInstance().Fs.PhotosStorePath))))
+	myRouter.HandleFunc("/snapshots/{time}/{cams}/{cursor}", getSnapshotsAPI).Methods("GET")
+	myRouter.HandleFunc("/count-snapshots/{time}/{cams}", countSnapshotsAPI).Methods("GET")
+	myRouter.HandleFunc("/snapshots-limit", getSnapshotsLimitAPI).Methods("GET")
+	myRouter.HandleFunc("/cameras", getCamerasAPI).Methods("GET")
 	fmt.Println("Listening to 9999")
 
 	// cors.Default() setup the middleware with default options being

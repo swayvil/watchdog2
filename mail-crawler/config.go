@@ -9,18 +9,19 @@ import (
 
 const configFile string = "config.json"
 
-type Config struct {
+type config struct {
 	Imap struct {
-		Url      string `json:"url"`
+		URL      string `json:"url"`
 		User     string `json:"user"`
 		Password string `json:"password"`
 	} `json:"imap"`
 	Db struct {
-		Host     string `json:"host"`
-		Port     int    `json:"port"`
-		User     string `json:"user"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
+		Host        string `json:"host"`
+		Port        int    `json:"port"`
+		User        string `json:"user"`
+		Password    string `json:"password"`
+		Name        string `json:"name"`
+		LimitSelect int    `json:"limitSelect"`
 	} `json:"db"`
 	Mail struct {
 		Since struct {
@@ -40,18 +41,18 @@ type Config struct {
 	} `json:"web-server"`
 }
 
-var instanceConfig *Config
+var instanceConfig *config
 var onceConfig sync.Once
 
-func GetConfigInstance() *Config {
+func getConfigInstance() *config {
 	onceConfig.Do(func() {
-		instanceConfig = &Config{}
+		instanceConfig = &config{}
 		instanceConfig.loadConfiguration(configFile)
 	})
 	return instanceConfig
 }
 
-func (config *Config) loadConfiguration(file string) {
+func (config *config) loadConfiguration(file string) {
 	configFile, err := os.Open(file)
 	defer configFile.Close()
 	if err != nil {
