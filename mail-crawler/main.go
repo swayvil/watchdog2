@@ -1,11 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
-	//imapCLient := newImapClient()
-	//imapCLient.importMessages()
-	//imapCLient.logout()
+	startMailCron()
 	handleRequests()
 	getPostgresqlClient().closeConnection()
 	fmt.Println("Done")

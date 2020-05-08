@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	insertSnapshotQuery   string = `INSERT INTO snapshot (camera, timestamp) VALUES ('$1', '$2');`
+	insertSnapshotQuery   string = `INSERT INTO snapshot (camera, timestamp) VALUES ($1, $2);`
 	selectLatestDateQuery string = `SELECT MAX(timestamp) FROM snapshot;`
 	selectDatesQuery      string = `SELECT DISTINCT timestamp FROM snapshot;`
 	countSnapshotsQuery   string = `SELECT count(*) FROM snapshot WHERE timestamp >= $1 AND camera = ANY($2::text[]);`
@@ -43,7 +43,7 @@ func insertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Snapshot inserted")
+	fmt.Printf("Snapshot inserted %s\n", timestamp)
 }
 
 func selectLatestTimestampInserted() *time.Time {

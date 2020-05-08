@@ -3,31 +3,46 @@
     <div class="row">
       <div class="col-sm">
         <h3>Date from:</h3>
-        <date-pick v-model="dateFrom" :isDateDisabled="disabledDate"></date-pick>
+        <date-pick
+          v-model="dateFrom"
+          :isDateDisabled="disabledDate"
+        ></date-pick>
       </div>
       <div class="col-sm">
         <h3>Cameras:</h3>
-          <div class="custom-control custom-checkbox text-left">
-            <div v-for="camera in cameras" v-bind:key="camera.id">
-              <input
-                type="checkbox"
-                :id="camera.id"
-                :value="camera.name"
-                v-model="selectedCameras"
-                class="custom-control-input"
-              />
-              <label :for="camera.id" class="custom-control-label">{{ camera.name }}</label>
-            </div>
+        <div class="custom-control custom-checkbox text-left">
+          <div v-for="camera in cameras" v-bind:key="camera.id">
+            <input
+              type="checkbox"
+              :id="camera.id"
+              :value="camera.name"
+              v-model="selectedCameras"
+              class="custom-control-input"
+            />
+            <label :for="camera.id" class="custom-control-label">{{
+              camera.name
+            }}</label>
+          </div>
         </div>
       </div>
       <div class="col-sm"></div>
     </div>
-    <div v-for="(n, i) in Math.ceil(snapshots.length / columnSize)" :key="n" class="row">
+    <div
+      v-for="(n, i) in Math.ceil(snapshots.length / columnSize)"
+      :key="n"
+      class="row"
+    >
       <div v-for="(m, j) in columnSize" :key="m" class="col-sm">
-        <a v-if="i * columnSize + j < snapshots.length" v-bind:href="snapshots[i * columnSize + j].photoPath" target="_blank">
-          <ImageItem :source="snapshots[i * columnSize + j].photosmallPath"/>
+        <a
+          v-if="i * columnSize + j < snapshots.length"
+          v-bind:href="snapshots[i * columnSize + j].photoPath"
+          target="_blank"
+        >
+          <ImageItem :source="snapshots[i * columnSize + j].photosmallPath" />
         </a>
-        <p v-if="i * columnSize + j < snapshots.length">{{ snapshots[i * columnSize + j].timestamp.replace('T', ' ') }}</p>
+        <p v-if="i * columnSize + j < snapshots.length">
+          {{ snapshots[i * columnSize + j].timestamp.replace("T", " ") }}
+        </p>
       </div>
     </div>
     <div class="row">
@@ -38,13 +53,17 @@
           v-on:click="loadSnapshots(-1)"
           type="button"
           class="btn btn-primary px-3"
-        >&lt;</button>
+        >
+          &lt;
+        </button>
         <button
           v-if="cursor * maxSnapshots + snapshots.length < countSnapshots"
           v-on:click="loadSnapshots(1)"
           type="button"
           class="btn btn-primary px-3"
-        >&gt;</button>
+        >
+          &gt;
+        </button>
       </div>
       <div class="col-sm"></div>
     </div>
@@ -70,50 +89,46 @@ export default {
       snapshots: [],
       columnSize: 5,
       cameras: [],
-      selectedCameras: []
+      selectedCameras: [],
     };
   },
   async mounted() {
-    try {
-      // Get max number of snapshots to display per page
-      snapshotAPI
-        .getSnapshotsLimit()
-        .then(response => {
-          this.maxSnapshots = response;
-        })
-        .catch(error => {
-          console.log(error);
-        });
+    // Get max number of snapshots to display per page
+    snapshotAPI
+      .getSnapshotsLimit()
+      .then((response) => {
+        this.maxSnapshots = response;
+      })
+      .catch((error) => {
+        console.log(error);
+      });
 
-      // Get cameras list
-      snapshotAPI
-        .getCameras()
-        .then(response => {
-          response.forEach(
-            function(item, index) {
-              var camera = { name: item, id: index };
-              this.cameras.push(camera);
-              this.selectedCameras.push(item);
-            }.bind(this)
-          );
-          this.loadSnapshots(0);
-        })
-        .catch(error => {
-          console.log(error);
-        });
-    } catch (error) {
-      throw error;
-    }
+    // Get cameras list
+    snapshotAPI
+      .getCameras()
+      .then((response) => {
+        response.forEach(
+          function(item, index) {
+            var camera = { name: item, id: index };
+            this.cameras.push(camera);
+            this.selectedCameras.push(item);
+          }.bind(this)
+        );
+        this.loadSnapshots(0);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   },
   methods: {
     loadSnapshots: function(cursor) {
       // Get total number of snapshots
       snapshotAPI
         .countSnapshots(this.dateFrom, this.formatSelectedCameras())
-        .then(response => {
+        .then((response) => {
           this.countSnapshots = response;
         })
-        .catch(error => {
+        .catch((error) => {
           console.log(error);
         });
 
@@ -121,15 +136,17 @@ export default {
       this.cursor += cursor;
       snapshotAPI
         .getSnapshots(this.dateFrom, this.formatSelectedCameras(), this.cursor)
-        .then(response => {
+        .then((response) => {
           response.forEach(function(snapshot) {
             snapshot.photoPath = axios.defaults.baseURL + snapshot.photoPath;
-            snapshot.photosmallPath = axios.defaults.baseURL + snapshot.photosmallPath;
+            snapshot.photosmallPath =
+              axios.defaults.baseURL + snapshot.photosmallPath;
           });
           this.snapshots = response;
           this.galleryKey = (this.galleryKey + 1) % 2; // To force the reload of the component
+          window.scrollTo(0, 0); // Scroll to top
         })
-        .catch(error => {
+        .catch((error) => {
           console.log(error);
         });
     },
@@ -150,10 +167,12 @@ export default {
     formatSelectedCameras() {
       var camerasStr = "";
       for (var i = 0; i < this.selectedCameras.length; i++) {
-        camerasStr += this.selectedCameras[i].trim() + (i < this.selectedCameras.length - 1 ? ',' : '');
+        camerasStr +=
+          this.selectedCameras[i].trim() +
+          (i < this.selectedCameras.length - 1 ? "," : "");
       }
       return camerasStr;
-    }
+    },
   },
   watch: {
     dateFrom: function() {
@@ -166,11 +185,11 @@ export default {
       }
       this.cursor = 0;
       this.loadSnapshots(0);
-    }
+    },
   },
   components: {
     ImageItem,
-    DatePick
-  }
+    DatePick,
+  },
 };
 </script>
