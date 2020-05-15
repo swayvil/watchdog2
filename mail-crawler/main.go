@@ -1,12 +1,10 @@
 package main
 
-import (
-	"fmt"
-)
-
 func main() {
-	startMailCron()
-	handleRequests()
-	getPostgresqlClient().closeConnection()
-	fmt.Println("Done")
+	defer getPostgresqlClient().closeConnection() // Close the DB connection when app stops
+	createFolders()                               // Create local folders, if they don't exist, to store the snapshots
+	startMailCron()                               // Schedule import every 30 minutes (for new snapshots)
+
+	go getImapClient().importMessages() // Start the import
+	handleRequests()                    // Start web server
 }
