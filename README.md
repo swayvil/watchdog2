@@ -9,13 +9,13 @@ Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras
 Firstly you need to configure the Network Video Recorder station to send notification mails. For the exemple we will used Synology Surveillance Station.
 
 ## Synology Surveillance Station
-1. Edit Notification for Camera / Motion detected:
+1. Edit Notification for Camera / Motion detected:\
 ![notification-icon](/images/notification-icon.png)
 
-2. Configure email notifications:
+2. Configure email notifications:\
 ![notification-email](/images/notification-email.png)
 
-3. Configure motion detected notification:
+3. Configure motion detected notification:\
 ![notification-motion-detected](/images/notification-motion-detected.png)
 
 3.1 Subject:
