@@ -1,0 +1,53 @@
+version: "3.7"
+
+services:  
+  postgres:
+    image: postgres:9.4
+    container_name: watchdog2-postgres
+    hostname: watchdog2-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /data/postgres
+    volumes:
+      - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
+    ports:
+      - "5432:5432"
+    networks:
+      - watchdog2
+    restart: unless-stopped
+
+  mail-crawler:
+    build:
+      context: ./mail-crawler
+      dockerfile: Dockerfile
+    image: swayvil/watchdog2-mail-crawler
+    container_name: watchdog2-mail-crawler
+    hostname: watchdog2-mail-crawler
+    volumes:
+      - ${MAIL_CRAWLER_STORE}:/store
+    ports:
+      - "9999:9999"
+    networks:
+      - watchdog2
+    depends_on:
+      - postgres
+
+  web-app:
+    build:
+      context: ./watchdog2
+      dockerfile: Dockerfile
+    image: swayvil/watchdog2-web-app
+    container_name: watchdog2-web-app
+    hostname: watchdog2-web-app
+    ports:
+      - "8181:80"
+    networks:
+      - watchdog2
+    depends_on:
+      - postgres
+      - mail-crawler
+
+networks:
+  watchdog2:
+    driver: bridge
