@@ -38,6 +38,7 @@ type config struct {
 	} `json:"fs"`
 	WebServer struct {
 		PhotosRoot string `json:"photosRoot"`
+		ListenPort int    `json:"listenPort"`
 	} `json:"web-server"`
 }
 

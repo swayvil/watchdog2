@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -24,14 +23,14 @@ type imapClient struct {
 const timeLayout = "2006-01-02 15:04:05"
 
 // Singleton
-var instance *imapClient
+var instance *imapClient = nil
 var once sync.Once
 
 func getImapClient() *imapClient {
 	once.Do(func() {
 		location, err := time.LoadLocation(getConfigInstance().Mail.Since.TimeZone)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
 		instance = &imapClient{nil, location, false}
 	})
@@ -46,7 +45,7 @@ func (imapClient *imapClient) connect() {
 	}
 	log.Println("Connected")
 
-	// Don't forget to logout
+	// We rather manually logout when the import is finished
 	//defer c.Logout()
 
 	// Login
@@ -55,14 +54,14 @@ func (imapClient *imapClient) connect() {
 		log.Fatal(err)
 	}
 	log.Println("Logged in")
-	imapClient.selectMailBox("INBOX")
 	imapClient.c = c
+	imapClient.selectMailBox("INBOX")
 }
 
 func (imapClient *imapClient) getSinceDateTime() time.Time {
 	latest := selectLatestTimestampInserted()
 	if latest == nil {
-		fmt.Println("Search mails since default date")
+		log.Println("Search mails since default date")
 		return time.Date(getConfigInstance().Mail.Since.Year, time.Month(getConfigInstance().Mail.Since.Month), getConfigInstance().Mail.Since.Day, 0, 0, 0, 0, imapClient.location)
 	}
 	return *latest
@@ -74,7 +73,7 @@ func (imapClient *imapClient) selectMailBox(mailbox string) {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Number of messages: %d\n", mbox.Messages)
+	log.Printf("Number of messages: %d\n", mbox.Messages)
 	if mbox.Messages == 0 {
 		log.Fatal("No message in mailbox")
 	}
@@ -85,18 +84,20 @@ func (imapClient *imapClient) importMessages() bool {
 		return false
 	}
 
+	since := imapClient.getSinceDateTime()
+	log.Printf("Start importing new snapshots since %v\n", since)
 	imapClient.importing = true
 	imapClient.connect()
 
 	criteria := imap.NewSearchCriteria()
-	criteria.Since = imapClient.getSinceDateTime()
+	criteria.Since = imapClient.getSinceDateTime() // Filter only since date (day), not time. We filter by time later
 	uids, err := imapClient.c.Search(criteria)
 	if err != nil {
 		log.Println(err)
 		imapClient.importing = false
 		return false
 	}
-	fmt.Printf("Search result is: %d\n", len(uids))
+	log.Printf("%d snapshots found\n", len(uids))
 
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(uids...)
@@ -116,7 +117,9 @@ func (imapClient *imapClient) importMessages() bool {
 			log.Println(err)
 		}
 		if matched {
-			imapClient.parseMail(msg, section)
+			if msg.InternalDate.After(since) { // Filter by date + time
+				imapClient.parseMail(msg, section)
+			}
 		} else {
 			log.Printf("Bad subject, email ignored:  %s\n", msg.Envelope.Subject)
 		}
@@ -127,6 +130,7 @@ func (imapClient *imapClient) importMessages() bool {
 	}
 	imapClient.logout()
 	imapClient.importing = false
+	log.Printf("Snapshots import finished")
 	return true
 }
 
@@ -189,31 +193,8 @@ func (imapClient *imapClient) parseMail(msg *imap.Message, section *imap.BodySec
 				photoSmall = resizeImage(photo)
 			}
 		}
-		insertSnapshot(camera, timestamp, photoSmall, photo)
+		insertSnapshot(camera, timestamp, msg.InternalDate, photoSmall, photo)
 	}
-
-	// Process each message's part
-	// for {
-	// 	p, err := mailReader.NextPart()
-	// 	if err == io.EOF {
-	// 		log.Println("EOF")
-	// 		//break
-	// 	} else if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-
-	// 	switch h := p.Header.(type) {
-	// 	case *mail.InlineHeader:
-	// 		// This is the message's text (can be plain-text or HTML)
-	// 		b, _ := ioutil.ReadAll(p.Body)
-	// 		imapClient.parseBody(string(b))
-	// 	case *mail.AttachmentHeader:
-	// 		// This is an attachment
-	// 		h.Filename()
-	// 		filename, _ := h.Filename()
-	// 		log.Println("Got attachment: %v", filename)
-	// 	}
-	//}
 }
 
 func strToInt(str string) int {
@@ -235,16 +216,6 @@ func (imapClient *imapClient) logout() {
 	imapClient.c.Logout()
 }
 
-// func (imapClient *imapClient) nbMailsToFetch() int {
-// 	criteria := imap.NewSearchCriteria()
-// 	criteria.Since = imapClient.getSinceDateTime()
-// 	uids, err := imapClient.c.Search(criteria)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-// 	return len(uids)
-// }
-
 // eg. imapClient.deleteMessages(time.Date(2020, 5, 2, 0, 0, 0, 0, imapClient.location))
 func (imapClient *imapClient) deleteMessages(mailbox string, to time.Time) {
 	imapClient.selectMailBox(mailbox)
@@ -254,7 +225,7 @@ func (imapClient *imapClient) deleteMessages(mailbox string, to time.Time) {
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Printf("%d messages found to be deleted\n", len(uids))
+	log.Printf("%d messages found to be deleted\n", len(uids))
 
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(uids...)

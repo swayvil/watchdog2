@@ -1,14 +1,14 @@
 {
   "imap": {
     "url": "imap.gmail.com:993",
-    "user": "XXX",
+    "user": "XXX@gmail.com",
     "password": "XXX"
   },
   "db": {
-    "host": "localhost",
+    "host": "watchdog2-postgres",
     "port": 5432,
     "user": "watchdog",
-    "password": "XXX",
+    "password": "watchdog",
     "name": "watchdog2",
     "limitSelect": 50
   },
@@ -23,9 +23,10 @@
     "bodyPattern": "CAMERA: ([a-zA-Z]+)<br>DATE: ([0-9]{4})/([0-9]{2})/([0-9]{2})<br>TIME: ([0-9]{2}):([0-9]{2}):([0-9]{2})<br>.*"
   },
   "fs": {
-    "photosStorePath": "/XXX/watchdog2-store"
+    "photosStorePath": "/store"
   },
   "web-server": {
-    "photosRoot": "/photos"
+    "photosRoot": "/photos",
+    "listenPort": 9999
   }
 }
