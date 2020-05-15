@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -9,11 +8,11 @@ import (
 )
 
 const (
-	insertSnapshotQuery   string = `INSERT INTO snapshot (camera, timestamp) VALUES ($1, $2);`
-	selectLatestDateQuery string = `SELECT MAX(timestamp) FROM snapshot;`
-	selectDatesQuery      string = `SELECT DISTINCT timestamp FROM snapshot;`
-	countSnapshotsQuery   string = `SELECT count(*) FROM snapshot WHERE timestamp >= $1 AND camera = ANY($2::text[]);`
-	selectSnapshotsQuery  string = `SELECT camera, timestamp FROM snapshot WHERE timestamp >= $1 AND camera = ANY($2::text[]) LIMIT $3 OFFSET $4;`
+	insertSnapshotQuery   string = `INSERT INTO snapshot (camera, timestamp, internaltimestamp) VALUES ($1, $2, $3);`
+	selectLatestDateQuery string = `SELECT MAX(internaltimestamp) FROM snapshot;`
+	selectFirstDateQuery  string = `SELECT MIN(internaltimestamp) FROM snapshot;`
+	countSnapshotsQuery   string = `SELECT count(*) FROM snapshot WHERE internaltimestamp >= $1 AND camera = ANY($2::text[]);`
+	selectSnapshotsQuery  string = `SELECT camera, timestamp FROM snapshot WHERE internaltimestamp >= $1 AND camera = ANY($2::text[]) ORDER BY timestamp ASC LIMIT $3 OFFSET $4;`
 )
 
 type snapshot struct {
@@ -23,7 +22,7 @@ type snapshot struct {
 	PhotoPath      string `json:"photoPath"`
 }
 
-func insertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo []byte) {
+func insertSnapshot(camera string, timestamp time.Time, internaltimestamp time.Time, photosmall []byte, photo []byte) {
 	if camera == "" {
 		log.Fatal("InsertSnapshot: camera is null")
 	}
@@ -39,18 +38,18 @@ func insertSnapshot(camera string, timestamp time.Time, photosmall []byte, photo
 	writeImageToFs(photo, camera+string(os.PathSeparator)+"big"+string(os.PathSeparator)+fileName)
 	//photoSmallID := InsertPhotoSmall(photosmall)
 	//photoID := InsertPhoto(photo)
-	_, err := psClient.Db.Exec(insertSnapshotQuery, camera, timestamp)
+	_, err := psClient.Database.Exec(insertSnapshotQuery, camera, timestamp, internaltimestamp)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	fmt.Printf("Snapshot inserted %s\n", timestamp)
+	//log.Printf("Snapshot inserted %s\n", timestamp)
 }
 
 func selectLatestTimestampInserted() *time.Time {
 	var timestamp time.Time
 	psClient := getPostgresqlClient()
 
-	row := psClient.Db.QueryRow(selectLatestDateQuery)
+	row := psClient.Database.QueryRow(selectLatestDateQuery)
 	err := row.Scan(&timestamp)
 	if err != nil {
 		return nil
@@ -58,11 +57,25 @@ func selectLatestTimestampInserted() *time.Time {
 	return &timestamp
 }
 
+func selectFirstTimestampInserted() *time.Time {
+	var timestamp time.Time
+	psClient := getPostgresqlClient()
+
+	row := psClient.Database.QueryRow(selectFirstDateQuery)
+	err := row.Scan(&timestamp)
+	if err != nil {
+		return nil
+	}
+	timestamp = timestamp.AddDate(0, 0, -1)        // Minus one day
+	timestamp = timestamp.Truncate(24 * time.Hour) // Return only the date part
+	return &timestamp
+}
+
 func selectCountSnapshots(fromTimestamp time.Time, cameras string) int {
 	var count int
 	psClient := getPostgresqlClient()
 
-	row := psClient.Db.QueryRow(countSnapshotsQuery, fromTimestamp, "{"+cameras+"}")
+	row := psClient.Database.QueryRow(countSnapshotsQuery, fromTimestamp, "{"+cameras+"}")
 	err := row.Scan(&count)
 	if err != nil {
 		return 0
@@ -74,10 +87,10 @@ func selectSnapshots(fromTimestamp time.Time, cameras string, cursor int) []snap
 	limitSelect := getConfigInstance().Db.LimitSelect
 	psClient := getPostgresqlClient()
 
-	rows, err := psClient.Db.Query(selectSnapshotsQuery, fromTimestamp, "{"+cameras+"}", limitSelect, cursor*limitSelect)
+	rows, err := psClient.Database.Query(selectSnapshotsQuery, fromTimestamp, "{"+cameras+"}", limitSelect, cursor*limitSelect)
 	defer rows.Close()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	var snapshots []snapshot
 	snapshots = make([]snapshot, limitSelect)
@@ -87,7 +100,7 @@ func selectSnapshots(fromTimestamp time.Time, cameras string, cursor int) []snap
 		var timestamp time.Time
 		err = rows.Scan(&camera, &timestamp)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		camera = strings.TrimSpace(camera)
 		photosRoot := getConfigInstance().WebServer.PhotosRoot
@@ -101,7 +114,7 @@ func selectSnapshots(fromTimestamp time.Time, cameras string, cursor int) []snap
 	// get any error encountered during iteration
 	err = rows.Err()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	if i < limitSelect {
 		return snapshots[0:i]
