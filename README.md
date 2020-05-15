@@ -1,6 +1,8 @@
 ![watchdog2-logo](/images/watchdog2-logo.png)
 # Watchdog2
-Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras and stored on an email server.
+Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras and stored on an email server.\
+
+![screenshot](/images/screenshot.jpg)
 
 # Architecture overview
 ![architecture-diagram](/images/architecture-diagram.png)
