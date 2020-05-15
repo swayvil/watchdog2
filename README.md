@@ -1,58 +1,67 @@
-# watchdog2
+![watchdog2-logo](https://github.com/swayvil/watchdog2/images/watchdog2-logo.png)
+# Watchdog2
+Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras and stored on an mail server.
 
-docker pull postgres:latest
-docker create --name postgres \
--e POSTGRES_PASSWORD=watchdog2 \
--p 5432:5432 \
---volume postgres:/var/lib/postgresql/data \
-postgres
+# Architecture overview
+![architecture-diagram](https://github.com/swayvil/watchdog2/images/architecture-diagram.png)
 
-docker exec -ti postgres /bin/bash
+# How to
+Firstly you need to configure the Network Video Recorder station to send notification mails. For the exemple we will used Synology Surveillance Station.
 
-psql -U postgres
+## Synology Surveillance Station
+Edit Notification for Camera / Motion detected:
+![notification-icon](https://github.com/swayvil/watchdog2/images/notification-icon.png)
 
-CREATE USER watchdog WITH PASSWORD 'watchdog';
+Configure email notifications:
+![notification-email](https://github.com/swayvil/watchdog2/images/notification-email.png)
 
-CREATE DATABASE watchdog2 WITH OWNER watchdog;
+Configure motion detected notification:
+![notification-motion-detected](https://github.com/swayvil/watchdog2/images/notification-motion-detected.png)
 
-psql -U watchdog watchdog2
+Subject:
+%CAMERA%-%DATE%-%TIME% Motion detected
 
-CREATE TABLE snapshot(
-    id SERIAL PRIMARY KEY,
-    camera CHAR(10)         NOT NULL,
-    timestamp TIMESTAMP     NOT NULL
-);
+Content:
+CAMERA: %CAMERA%
+DATE: %DATE%
+TIME: %TIME%
 
-CREATE TABLE camera (
-    camera CHAR(10) PRIMARY KEY         NOT NULL
-);
+## Install Watchdog2
+Get Watchdog2:
+```
+git clone https://github.com/swayvil/watchdog2.git
+```
 
+Create a folder to store the snapshots images:
+```
+mkdir /Users/xxx/watchdog2-store
+```
+
+Edit .env:
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+MAIL_CRAWLER_STORE=/Users/xxx/watchdog2-store
+```
+
+Declare the camera names by updating the values to insert in the camera table:
+```
 INSERT INTO camera (camera) VALUES ('Cour');
 INSERT INTO camera (camera) VALUES ('Garage');
 INSERT INTO camera (camera) VALUES ('Entree');
+```
 
-mkdir -p /Users/idaho/workspaces/watchdog2-store/cour/small
-mkdir -p /Users/idaho/workspaces/watchdog2-store/cour/big
-mkdir -p /Users/idaho/workspaces/watchdog2-store/garage/small
-mkdir -p /Users/idaho/workspaces/watchdog2-store/garage/big
-mkdir -p /Users/idaho/workspaces/watchdog2-store/entree/small
-mkdir -p /Users/idaho/workspaces/watchdog2-store/entree/big
+Edit mail-crawler/config.json:
+- Set imap server connectivity information
+- Importing mail start date
+- Update mail object and body parsing patterns if you set a different notification content than the example
 
-DROP TABLE snapshot;
-DROP TABLE camera;
-rm -Rf /Users/idaho/workspaces/watchdog2-store
+Build Docker images and start the containers:
+```
+cd watchdog2
+docker-compose -f docker-compose.yml create
+docker-compose -f docker-compose.yml start
+```
 
-https://godoc.org/github.com/lib/pq#Open
-https://www.calhoun.io/connecting-to-a-postgresql-database-with-gos-database-sql-package/
-https://github.com/emersion/go-imap
-
-go get github.com/lib/pq
-go get github.com/gorilla/mux
-go get github.com/rs/cors
-go build
-
-
-http://localhost:9999/snapshots-all-cams/2019-11-01T05:41:00
-
-
-curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://localhost:9999/snapshots-all-cams/2019-11-01T05:41:00
+Browse the snapshots:
+http://localhost:8181
