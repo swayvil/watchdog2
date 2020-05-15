@@ -5,7 +5,7 @@
         <h3>Date from:</h3>
         <date-pick
           v-model="dateFrom"
-          :isDateDisabled="disabledDate"
+          :isDateDisabled="isDisabledDate"
         ></date-pick>
       </div>
       <div class="col-sm">
@@ -41,7 +41,7 @@
           <ImageItem :source="snapshots[i * columnSize + j].photosmallPath" />
         </a>
         <p v-if="i * columnSize + j < snapshots.length">
-          {{ snapshots[i * columnSize + j].timestamp.replace("T", " ") }}
+          {{ formatTimestamp(snapshots[i * columnSize + j].timestamp) }}
         </p>
       </div>
     </div>
@@ -90,6 +90,8 @@ export default {
       columnSize: 5,
       cameras: [],
       selectedCameras: [],
+      firstSnapshotDate: Date.now(), // Timestamp
+      lastSnapshotDate: Date.now() // Timestamp
     };
   },
   async mounted() {
@@ -119,9 +121,33 @@ export default {
       .catch((error) => {
         console.log(error);
       });
+
+    // Set calendar starting date
+    snapshotAPI
+      .getFirtSnapshotDate()
+      .then((response) => {
+        this.firstSnapshotDate = new Date(response).getTime();
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   },
   methods: {
+    // Set calendar default selected date
+    refreshLastSnapshotDate: function() {
+      snapshotAPI
+        .getLastSnapshotDate()
+        .then((response) => {
+          console.log(response);
+          this.lastSnapshotDate = new Date(response).getTime();
+        })
+        .catch((error) => {
+          console.log(error);
+        })
+    },
     loadSnapshots: function(cursor) {
+      this.refreshLastSnapshotDate(); // Refresh calendar ending date
+
       // Get total number of snapshots
       snapshotAPI
         .countSnapshots(this.dateFrom, this.formatSelectedCameras())
@@ -150,8 +176,21 @@ export default {
           console.log(error);
         });
     },
-    disabledDate(date) {
-      return date.getTime() > Date.now();
+    // 2020-04-23T04:10:01 => 23-04-2020 04:10:01
+    formatTimestamp: function(ts) {
+      console.log(ts.length)
+      if (ts.length == 19) {
+        var year = ts.substr(0, 4)
+        var month = ts.substr(5, 2)
+        var day = ts.substr(8, 2)
+        var time = ts.substr(11, 8)
+        return day + "-" + month + "-" + year + " " + time
+      }
+      return ts
+    },
+    isDisabledDate(date) {
+      return date.getTime() < this.firstSnapshotDate ||
+              date.getTime() > this.lastSnapshotDate;
     },
     today() {
       var d = new Date(),

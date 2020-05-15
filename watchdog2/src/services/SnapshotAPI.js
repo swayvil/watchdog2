@@ -25,5 +25,17 @@ export default {
     .then(response => {
       return response.data;
     })
+  },
+  getFirtSnapshotDate () {
+    return axios.get('/first-snapshot-date')
+    .then(response => {
+      return response.data;
+    })
+  },
+  getLastSnapshotDate () {
+    return axios.get('/last-snapshot-date')
+    .then(response => {
+      return response.data;
+    })
   }
 }
