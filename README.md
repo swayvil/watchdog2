@@ -43,21 +43,21 @@ git clone https://github.com/swayvil/watchdog2.git
 mkdir /Users/xxx/watchdog2-store
 ```
 
-3. Edit .env:
+3. Edit **.env**:
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 MAIL_CRAWLER_STORE=/Users/xxx/watchdog2-store
 ```
 
-4. Declare the camera names by updating the values to insert in the camera table:
+4. Declare the camera names by updating the values to insert in the camera table. Edit **initdb.sh**:
 ```
 INSERT INTO camera (camera) VALUES ('Cour');
 INSERT INTO camera (camera) VALUES ('Garage');
 INSERT INTO camera (camera) VALUES ('Entree');
 ```
 
-5. Edit mail-crawler/config.json:
+5. Edit **mail-crawler/config.json**:
 - Set imap server connectivity information
 - Importing mail start date
 - Update mail object and body parsing patterns if you set a different notification content than the example
