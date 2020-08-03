@@ -13,7 +13,7 @@ psql -v ON_ERROR_STOP=1 --username "watchdog" -d "watchdog2" <<-EOSQL
     CREATE TABLE camera (
         camera CHAR(10) PRIMARY KEY         NOT NULL
     );
-    INSERT INTO camera (camera) VALUES ('Cour');
-    INSERT INTO camera (camera) VALUES ('Garage');
-    INSERT INTO camera (camera) VALUES ('Entree');
+    INSERT INTO camera VALUES ('Cour');
+    INSERT INTO camera VALUES ('Garage');
+    INSERT INTO camera VALUES ('Entree');
 EOSQL

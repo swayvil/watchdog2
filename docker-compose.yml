@@ -1,21 +1,21 @@
-version: "3.7"
+version: "3.8"
 
 services:  
   postgres:
     image: postgres:9.4
+    restart: unless-stopped
     container_name: watchdog2-postgres
     hostname: watchdog2-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /data/postgres
     volumes:
       - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
+      - ${MAIL_CRAWLER_STORE}/postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
       - watchdog2
-    restart: unless-stopped
 
   mail-crawler:
     build:
@@ -48,6 +48,7 @@ services:
       - postgres
       - mail-crawler
 
+volumes:
+  postgres-data:
 networks:
   watchdog2:
-    driver: bridge

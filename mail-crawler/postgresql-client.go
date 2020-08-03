@@ -16,8 +16,8 @@ type postgresqlClient struct { //Singleton
 
 var instanceDbClient *postgresqlClient = nil
 var onceDbClient sync.Once
-var connectAttempt int = 3
-var waitInS time.Duration = 10
+var connectAttempt int = 5
+var waitInS time.Duration = 15
 
 func getPostgresqlClient() *postgresqlClient {
 	onceDbClient.Do(func() {
