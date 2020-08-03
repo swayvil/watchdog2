@@ -32,6 +32,9 @@ DATE: %DATE%
 TIME: %TIME%
 ```
 
+## Prepare the credentials of the mail server
+You need a login + password. On Gmail create an [App password](https://support.google.com/mail/answer/185833?hl=en)
+
 ## Install Watchdog2
 1. Get Watchdog2:
 ```
