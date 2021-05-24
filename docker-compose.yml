@@ -2,7 +2,7 @@ version: "3.8"
 
 services:  
   postgres:
-    image: postgres:9.4
+    image: postgres:11.12
     restart: unless-stopped
     container_name: watchdog2-postgres
     hostname: watchdog2-postgres
