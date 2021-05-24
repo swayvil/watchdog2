@@ -1,6 +1,6 @@
 ![watchdog2-logo](/images/watchdog2-logo.png)
 # Watchdog2
-Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras and stored on an email server.\
+Watchdog2 is a solution to easily browse snapshots taken by surveillance cameras and stored on an email server.
 
 ![screenshot](/images/screenshot.png)
 
@@ -74,3 +74,6 @@ docker-compose -f docker-compose.yml start
 
 7. Browse the snapshots:
 http://localhost:8181
+
+# Build your own secure video surveillance system
+This [article](https://swayvil.medium.com/build-a-secure-video-surveillance-system-with-your-synology-nas-e7bc755ddfeb) presents how to build your own secure video surveillance system with your Synology NAS.
