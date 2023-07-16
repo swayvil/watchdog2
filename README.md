@@ -78,7 +78,7 @@ http://localhost:8181
 # Build your own secure video surveillance system
 This [article](https://swayvil.medium.com/build-a-secure-video-surveillance-system-with-your-synology-nas-e7bc755ddfeb) presents how to build your own secure video surveillance system with your Synology NAS.
 
-8. Run web application in dev
+# Run web application in dev
 ```
 cd watchdog2
 npm install
