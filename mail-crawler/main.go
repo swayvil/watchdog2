@@ -7,4 +7,5 @@ func main() {
 
 	go getImapClient().importMessages() // Start the import
 	handleRequests()                    // Start web server
+	//getImapClient().deleteMessages("inbox", 2023, time.January, 1)
 }

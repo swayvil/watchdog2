@@ -216,11 +216,13 @@ func (imapClient *imapClient) logout() {
 	imapClient.c.Logout()
 }
 
-// eg. imapClient.deleteMessages(time.Date(2020, 5, 2, 0, 0, 0, 0, imapClient.location))
-func (imapClient *imapClient) deleteMessages(mailbox string, to time.Time) {
+// eg. imapClient.deleteMessages("inbox", 2020, 5, 2)
+func (imapClient *imapClient) deleteMessages(mailbox string, year int, month time.Month, day int) {
+	imapClient.connect()
+
 	imapClient.selectMailBox(mailbox)
 	criteria := imap.NewSearchCriteria()
-	criteria.Before = to
+	criteria.Before = time.Date(year, month, day, 0, 0, 0, 0, imapClient.location)
 	uids, err := imapClient.c.Search(criteria)
 	if err != nil {
 		log.Println(err)
