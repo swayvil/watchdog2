@@ -20,8 +20,6 @@ type imapClient struct {
 	importing bool // True = is already importing new mails
 }
 
-const timeLayout = "2006-01-02 15:04:05"
-
 // Singleton
 var instance *imapClient = nil
 var once sync.Once
@@ -113,7 +111,7 @@ func (imapClient *imapClient) importMessages() bool {
 	for msg := range messages {
 		matched, err := regexp.MatchString(getConfigInstance().Mail.SubjectPattern, msg.Envelope.Subject)
 		if err != nil {
-			log.Println("Bad subject: " + msg.Envelope.Subject)
+			log.Println(msg.Envelope.Date.Format(time.RFC3339) + " - Bad subject: " + msg.Envelope.Subject)
 			log.Println(err)
 		}
 		if matched {
@@ -121,7 +119,7 @@ func (imapClient *imapClient) importMessages() bool {
 				imapClient.parseMail(msg, section)
 			}
 		} else {
-			log.Printf("Bad subject, email ignored:  %s\n", msg.Envelope.Subject)
+			log.Println(msg.Envelope.Date.Format(time.RFC3339) + " - Bad subject, email ignored: " + msg.Envelope.Subject)
 		}
 	}
 
@@ -208,7 +206,11 @@ func strToInt(str string) int {
 func (imapClient *imapClient) parseBody(body string) (string, time.Time) {
 	r := regexp.MustCompile(getConfigInstance().Mail.BodyPattern)
 	match := r.FindAllStringSubmatch(body, -1)
-	t := time.Date(strToInt(match[0][2]), time.Month(strToInt(match[0][3])), strToInt(match[0][4]), strToInt(match[0][5]), strToInt(match[0][6]), strToInt(match[0][7]), 0, imapClient.location)
+	if len(match) <= 0 || len(match[0]) <= 0 {
+		log.Fatal("Incorrect body: " + body)
+	}
+	// match[0][1] contains the whole body
+	t := time.Date(strToInt(match[0][3]), time.Month(strToInt(match[0][4])), strToInt(match[0][5]), strToInt(match[0][7]), strToInt(match[0][8]), strToInt(match[0][9]), 0, imapClient.location)
 	return string(match[0][1]), t
 }
 
